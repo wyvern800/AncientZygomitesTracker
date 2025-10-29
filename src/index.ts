@@ -11,6 +11,15 @@ import "./index.html";
 import "./appconfig.json";
 import "./icon.png";
 
+// Importa o áudio de congratulações (será uma URL após o build)
+let congratulationsAudioUrl: string | null = null;
+try {
+	const congratulationsAudio = require("./songs/congratulations.mp3");
+	congratulationsAudioUrl = congratulationsAudio;
+} catch (e) {
+	console.warn("Arquivo de áudio congratulations.mp3 não encontrado. Funcionalidade de som desabilitada.");
+}
+
 interface Zygomite {
 	name: string;
 	catched: boolean;
@@ -111,6 +120,12 @@ interface EventLog {
 
 var eventLogs: EventLog[] = [];
 const MAX_EVENT_LOGS = 100; // Mantém apenas os últimos 100 eventos
+
+// Verifica se todas as zygomitas foram capturadas
+function checkAllCaptured() {
+	const caughtCount = zygomites.filter(z => z.catched).length;
+	return caughtCount === zygomites.length;
+}
 
 // Sistema de tradução/i18n
 type Language = 'en' | 'pt';
@@ -331,6 +346,18 @@ export function toggleZygomite(zygomiteName: string) {
 		saveState();
 		updateUI();
 		updateNPCSelector();
+		
+		// Verifica se todas foram capturadas (apenas se foi marcada como capturada)
+		if (zygomite.catched && checkAllCaptured()) {
+			
+			// Mostra mensagem especial
+			showOverlayQueued(
+				currentLanguage === 'en' ? '🎉 All Zygomites Captured! 🎉' : '🎉 Todas as Zygomitas Capturadas! 🎉',
+				a1lib.mixColor(245, 158, 11), // amarelo/laranja
+				28,
+				5000
+			);
+		}
 		
 		// Feedback visual no jogo (usando fila para evitar flood)
 		const overlayText = zygomite.catched 
@@ -609,6 +636,18 @@ function checkDialogue() {
 				saveState();
 				updateUI();
 				updateNPCSelector();
+				
+				// Verifica se todas foram capturadas
+				if (checkAllCaptured()) {
+					
+					// Mostra mensagem especial
+					showOverlayQueued(
+						currentLanguage === 'en' ? '🎉 All Zygomites Captured! 🎉' : '🎉 Todas as Zygomitas Capturadas! 🎉',
+						a1lib.mixColor(245, 158, 11), // amarelo/laranja
+						28,
+						5000
+					);
+				}
 				
 				// Feedback visual no jogo (usando fila para evitar flood)
 				showOverlayQueued(
