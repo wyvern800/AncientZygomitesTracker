@@ -99,6 +99,35 @@ interface OverlayMessage {
 var overlayQueue: OverlayMessage[] = [];
 var isShowingOverlay = false;
 
+// Sistema de log de eventos
+interface EventLog {
+	timestamp: Date;
+	message: string;
+	type: 'success' | 'info' | 'warning' | 'error';
+}
+
+var eventLogs: EventLog[] = [];
+const MAX_EVENT_LOGS = 100; // Mantém apenas os últimos 100 eventos
+
+// Adiciona um evento ao log
+function addEventLog(message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') {
+	const event: EventLog = {
+		timestamp: new Date(),
+		message,
+		type
+	};
+	
+	eventLogs.push(event);
+	
+	// Limita o número de eventos armazenados
+	if (eventLogs.length > MAX_EVENT_LOGS) {
+		eventLogs.shift();
+	}
+	
+	// Atualiza a aba de eventos se estiver visível
+	updateEventsTab();
+}
+
 // Mostra uma mensagem na fila de overlays
 function showOverlayQueued(text: string, color: number = a1lib.mixColor(16, 185, 129), size: number = 24, duration: number = 2000) {
 	if (!window.alt1) return;
@@ -172,50 +201,155 @@ export function toggleZygomite(zygomiteName: string) {
 		
 		// Feedback visual no jogo (usando fila para evitar flood)
 		showOverlayQueued(
-			zygomite.catched ? `✓ ${zygomite.name} marcada!` : `○ ${zygomite.name} desmarcada`,
+			zygomite.catched ? `✓ ${zygomite.name} encontrado!` : `○ ${zygomite.name} desmarcada`,
 			zygomite.catched ? a1lib.mixColor(16, 185, 129) : a1lib.mixColor(156, 163, 175),
 			24,
 			2000
 		);
 		
-		output.insertAdjacentHTML("beforeend", `<div style="color: ${zygomite.catched ? '#10b981' : '#9ca3af'};">
-			${zygomite.catched ? '✓' : '○'} <strong>${zygomite.name}</strong> ${zygomite.catched ? 'marcada como capturada' : 'desmarcada'}
-		</div>`);
+		const message = `${zygomite.catched ? '✓' : '○'} <strong>${zygomite.name}</strong> ${zygomite.catched ? 'marcada como capturada' : 'desmarcada'}`;
+		addEventLog(message, zygomite.catched ? 'success' : 'info');
 	}
 }
 
-// Atualiza a interface visual
+// Atualiza a interface visual com sistema de abas
 function updateUI() {
 	const statusDiv = document.getElementById("status") || createStatusDiv();
 	const caughtCount = zygomites.filter(z => z.catched).length;
 	const totalCount = zygomites.length;
 	
 	statusDiv.innerHTML = `
-		<h3>Zygomitas Antigas de Anachronia</h3>
-		<p><strong>Capturadas:</strong> ${caughtCount}/${totalCount}</p>
-		<p style="font-size: 11px; color: #9ca3af; margin: 5px 0;">
-			💡 <strong>Dica:</strong> Clique no nome da zygomita para marcar/desmarcar manualmente
-		</p>
-		<div style="max-height: 350px; overflow-y: auto; margin-top: 10px;">
-			${zygomites.map((z, index) => `
-				<div 
-					id="zygomite-${index}"
-					onclick="TestApp.toggleZygomite('${z.name.replace(/'/g, "\\'")}')"
-					style="padding: 8px; margin: 3px 0; ${z.catched ? 'background-color: #10b981; color: white;' : 'background-color: #374151; color: #e5e7eb;'} border-radius: 4px; cursor: pointer; transition: background-color 0.2s;"
-					onmouseover="this.style.opacity='0.8'"
-					onmouseout="this.style.opacity='1'"
-				>
-					${z.catched ? '✓' : '○'} ${z.name}
-				</div>
-			`).join('')}
+		<div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700">
+			<div class="flex gap-2">
+				<button id="tab-status" onclick="switchTab('status')" class="px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600">
+					Status
+				</button>
+				<button id="tab-events" onclick="switchTab('events')" class="px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200">
+					Eventos (${eventLogs.length})
+				</button>
+			</div>
+			<div class="flex gap-2 items-center">
+				<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="Iniciar Monitoramento">
+					<i class="bi bi-play-fill"></i>
+				</button>
+				<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="Parar Monitoramento">
+					<i class="bi bi-pause-fill"></i>
+				</button>
+				<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="Resetar">
+					<i class="bi bi-arrow-clockwise"></i>
+				</button>
+			</div>
+		</div>
+		
+		<div id="tab-content-status" class="tab-content block">
+			<h3 class="text-white text-center mt-0 mb-4 text-xl font-semibold">Zygomitas Antigas de Anachronia</h3>
+			
+			<div class="max-h-[350px] overflow-y-auto mt-2 space-y-2">
+				${zygomites.map((z, index) => `
+					<div 
+						id="zygomite-${index}"
+						onclick="TestApp.toggleZygomite('${z.name.replace(/'/g, "\\'")}')"
+						class="px-3 py-2 rounded cursor-pointer flex justify-between items-center transition-all hover:opacity-80 ${z.catched ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}"
+					>
+						<span class="font-medium">${z.name}</span>
+						<i class="bi ${z.catched ? 'bi-check-circle-fill' : 'bi-circle'}"></i>
+					</div>
+				`).join('')}
+			</div>
+			<p class="text-center mt-4 mb-0 text-white font-semibold">Capturadas: ${caughtCount}/${totalCount}</p>
+		</div>
+		
+		<div id="tab-content-events" class="tab-content hidden">
+			<h3 class="text-white text-lg font-semibold mb-2">Log de Eventos</h3>
+			<div id="events-list" class="max-h-[400px] overflow-y-auto mt-2 space-y-2">
+				${renderEventsList()}
+			</div>
 		</div>
 	`;
 }
 
+// Renderiza a lista de eventos
+function renderEventsList(): string {
+	if (eventLogs.length === 0) {
+		return '<div class="p-5 text-center text-gray-400">Nenhum evento ainda</div>';
+	}
+	
+	return eventLogs.slice().reverse().map(event => {
+		const timeStr = event.timestamp.toLocaleTimeString();
+		const colorMap = {
+			success: 'text-emerald-500 border-emerald-500',
+			info: 'text-blue-500 border-blue-500',
+			warning: 'text-amber-500 border-amber-500',
+			error: 'text-red-500 border-red-500'
+		};
+		const iconMap = {
+			success: 'bi-check-circle-fill',
+			info: 'bi-info-circle-fill',
+			warning: 'bi-exclamation-triangle-fill',
+			error: 'bi-x-circle-fill'
+		};
+		
+		return `
+			<div class="p-2 bg-gray-700 border-l-4 ${colorMap[event.type]} rounded flex items-center gap-2">
+				<span class="text-gray-400 text-xs">[${timeStr}]</span>
+				<i class="bi ${iconMap[event.type]} ${colorMap[event.type].split(' ')[0]}"></i>
+				<span class="text-gray-200">${event.message}</span>
+			</div>
+		`;
+	}).join('');
+}
+
+// Atualiza apenas a aba de eventos (mais eficiente que recriar toda a UI)
+function updateEventsTab() {
+	const eventsList = document.getElementById("events-list");
+	const tabEvents = document.getElementById("tab-events");
+	
+	if (eventsList) {
+		eventsList.innerHTML = renderEventsList();
+		// Auto-scroll para o último evento
+		eventsList.scrollTop = eventsList.scrollHeight;
+	}
+	
+	if (tabEvents) {
+		tabEvents.textContent = `Eventos (${eventLogs.length})`;
+	}
+}
+
+// Função global para trocar de aba
+(window as any).switchTab = function(tabName: 'status' | 'events') {
+	// Atualiza botões
+	const tabStatus = document.getElementById("tab-status");
+	const tabEvents = document.getElementById("tab-events");
+	const contentStatus = document.getElementById("tab-content-status");
+	const contentEvents = document.getElementById("tab-content-events");
+	
+	if (tabName === 'status') {
+		if (tabStatus) {
+			tabStatus.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+		}
+		if (tabEvents) {
+			tabEvents.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+		}
+		if (contentStatus) contentStatus.className = "tab-content block";
+		if (contentEvents) contentEvents.className = "tab-content hidden";
+	} else {
+		if (tabStatus) {
+			tabStatus.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+		}
+		if (tabEvents) {
+			tabEvents.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+		}
+		if (contentStatus) contentStatus.className = "tab-content hidden";
+		if (contentEvents) contentEvents.className = "tab-content block";
+		// Atualiza eventos quando a aba é aberta
+		updateEventsTab();
+	}
+};
+
 function createStatusDiv(): HTMLElement {
 	const div = document.createElement("div");
 	div.id = "status";
-	div.style.cssText = "padding: 10px; margin: 10px 0; background-color: #1f2937; border-radius: 5px;";
+	div.className = "p-4 my-4 bg-gray-800 rounded-lg";
 	output.appendChild(div);
 	return div;
 }
@@ -258,10 +392,6 @@ function readDialogueTitle(): string | null {
 		if (title && title.trim()) {
 			const detectedText = title.toLowerCase().trim();
 			console.log("[DEBUG] ✓ Título detectado:", detectedText);
-			const debugDiv = document.getElementById("debug-text");
-			if (debugDiv) {
-				debugDiv.textContent = `Último texto detectado: ${detectedText}`;
-			}
 			return detectedText;
 		}
 
@@ -327,7 +457,8 @@ function checkDialogue() {
 					3000
 				);
 				
-				output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;"><strong>✓ Zygomita capturada:</strong> ${zygomite.name} (detectado: "${title}")</div>`);
+				const message = `<strong>✓ Zygomita capturada:</strong> ${zygomite.name} (detectado: "${title}")`;
+				addEventLog(message, 'success');
 				console.log(`✓ Match encontrado: ${zygomite.name} com "${title}"`);
 				break;
 			}
@@ -338,22 +469,22 @@ function checkDialogue() {
 // Inicia o monitoramento do diálogo
 export function startMonitoring() {
 	if (isMonitoring) {
-		output.insertAdjacentHTML("beforeend", `<div>Monitoramento já está ativo</div>`);
+		addEventLog("Monitoramento já está ativo", 'warning');
 		return;
 	}
 
 	if (!window.alt1) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #ef4444;">Você precisa executar isso no Alt1 para monitorar diálogos</div>`);
+		addEventLog("Você precisa executar isso no Alt1 para monitorar diálogos", 'error');
 		return;
 	}
 
 	if (!alt1.permissionPixel) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #ef4444;">Permissão de captura de pixels não está habilitada</div>`);
+		addEventLog("Permissão de captura de pixels não está habilitada", 'error');
 		return;
 	}
 
 	isMonitoring = true;
-	output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;"><strong>Monitoramento iniciado!</strong> Clique em NPCs para capturar zygomitas.</div>`);
+	addEventLog("<strong>Monitoramento iniciado!</strong> Clique em NPCs para capturar zygomitas.", 'info');
 	
 	// Verifica o diálogo a cada 100ms para detecção mais fluida e responsiva
 	monitorInterval = setInterval(() => {
@@ -373,7 +504,7 @@ export function stopMonitoring() {
 		monitorInterval = null;
 	}
 	
-	output.insertAdjacentHTML("beforeend", `<div>Monitoramento parado</div>`);
+	addEventLog("Monitoramento parado", 'info');
 }
 
 // Reseta todas as zygomitas
@@ -384,7 +515,7 @@ export function resetZygomites() {
 	// Limpa o último título detectado para permitir detectar novamente após reset
 	lastDialogueTitle = "";
 	updateNPCSelector();
-	output.insertAdjacentHTML("beforeend", `<div style="color: #f59e0b;">Estado resetado - todas as zygomitas marcadas como não capturadas</div>`);
+	addEventLog("Estado resetado - todas as zygomitas marcadas como não capturadas", 'warning');
 }
 
 // Marca uma zygomita manualmente pelo nome
@@ -404,12 +535,12 @@ export function markZygomiteManually(npcName: string) {
 			3000
 		);
 		
-		output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;"><strong>✓ Zygomita marcada manualmente:</strong> ${zygomite.name}</div>`);
+		addEventLog(`<strong>✓ Zygomita marcada manualmente:</strong> ${zygomite.name}`, 'success');
 		return true;
 	} else if (!zygomite) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #ef4444;">NPC não encontrado na lista: ${npcName}</div>`);
+		addEventLog(`NPC não encontrado na lista: ${npcName}`, 'error');
 	} else if (zygomite.catched) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #f59e0b;">${zygomite.name} já foi marcada anteriormente</div>`);
+		addEventLog(`${zygomite.name} já foi marcada anteriormente`, 'warning');
 	}
 	return false;
 }
@@ -417,7 +548,7 @@ export function markZygomiteManually(npcName: string) {
 // Função de teste para debug - mostra visualmente a região sendo lida
 export function testDialogueRead() {
 	if (!window.alt1 || !alt1.permissionPixel) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #ef4444;">Alt1 não disponível ou sem permissão</div>`);
+		addEventLog("Alt1 não disponível ou sem permissão", 'error');
 		return;
 	}
 
@@ -437,14 +568,14 @@ export function testDialogueRead() {
 		3
 	);
 
-	output.insertAdjacentHTML("beforeend", `<div style="color: #3b82f6;">🔴 Retângulo vermelho desenhado na região de leitura (${x}, ${y}, ${width}x${height})</div>`);
+	addEventLog(`🔴 Retângulo vermelho desenhado na região de leitura (${x}, ${y}, ${width}x${height})`, 'info');
 	
 	// Tenta ler e mostra resultado
 	const text = readDialogueTitle();
 	if (text) {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;">✓ Texto lido: "${text}"</div>`);
+		addEventLog(`✓ Texto lido: "${text}"`, 'success');
 	} else {
-		output.insertAdjacentHTML("beforeend", `<div style="color: #ef4444;">✗ Nenhum texto foi lido. Verifique o Console (F12) para detalhes.</div>`);
+		addEventLog(`✗ Nenhum texto foi lido. Verifique o Console (F12) para detalhes.`, 'error');
 	}
 }
 
@@ -471,35 +602,11 @@ if (window.alt1) {
 } else {
 	let addappurl = `alt1://addapp/${new URL("./appconfig.json", document.location.href).href}`;
 	output.insertAdjacentHTML("beforeend", `
-		<div style="padding: 10px; background-color: #1f2937; border-radius: 5px; margin: 10px 0;">
-			Alt1 não detectado, clique <a href='${addappurl}'>aqui</a> para adicionar este app ao Alt1
+		<div class="p-4 bg-gray-800 rounded-lg my-4">
+			<p class="text-gray-200">Alt1 não detectado, clique <a href='${addappurl}' class="text-blue-400 hover:text-blue-300 underline">aqui</a> para adicionar este app ao Alt1</p>
 		</div>
 	`);
 }
 
-// Interface inicial
-output.insertAdjacentHTML("beforeend", `
-	<div style="padding: 10px; background-color: #1f2937; border-radius: 5px; margin: 10px 0;">
-		<h3 style="margin-top: 0;">Controle de Zygomitas</h3>
-		<button onclick='TestApp.startMonitoring()' style="padding: 8px 16px; margin: 5px; background-color: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">
-			Iniciar Monitoramento
-		</button>
-		<button onclick='TestApp.stopMonitoring()' style="padding: 8px 16px; margin: 5px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
-			Parar Monitoramento
-		</button>
-		<button onclick='TestApp.resetZygomites()' style="padding: 8px 16px; margin: 5px; background-color: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">
-			Resetar
-		</button>
-		<div id="debug-text" style="font-size: 11px; color: #6b7280; margin-top: 10px; font-style: italic;">
-			Último texto detectado: nenhum
-		</div>
-		<button onclick='TestApp.testDialogueRead()' style="padding: 8px 16px; margin: 5px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
-			🧪 Testar Leitura (Debug)
-		</button>
-		<p style="font-size: 12px; color: #9ca3af; margin-top: 10px;">
-			<strong>Nota:</strong> O plugin tentará ler automaticamente quando os métodos de OCR estiverem disponíveis.<br>
-			<strong>Debug:</strong> Abra o Console (F12) para ver logs detalhados.
-		</p>
-	</div>
-`);
+// Debug text - mantido para feedback, mas não precisa de seção separada
 
