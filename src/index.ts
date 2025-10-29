@@ -1,7 +1,6 @@
 // alt1 base libs, provides all the commonly used methods for image matching and capture
 // also gives your editor info about the window.alt1 api
 import * as a1lib from "alt1/base";
-import * as OCR from "alt1/ocr";
 
 // tell webpack that this file relies index.html, appconfig.json and icon.png, this makes webpack
 // add these files to the output directory
@@ -10,15 +9,6 @@ import * as OCR from "alt1/ocr";
 import "./index.html";
 import "./appconfig.json";
 import "./icon.png";
-
-// Importa o áudio de congratulações (será uma URL após o build)
-let congratulationsAudioUrl: string | null = null;
-try {
-	const congratulationsAudio = require("./songs/congratulations.mp3");
-	congratulationsAudioUrl = congratulationsAudio;
-} catch (e) {
-	console.warn("Arquivo de áudio congratulations.mp3 não encontrado. Funcionalidade de som desabilitada.");
-}
 
 interface Zygomite {
 	name: string;
