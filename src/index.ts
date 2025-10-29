@@ -86,6 +86,64 @@ var isMonitoring = false;
 var monitorInterval: NodeJS.Timeout | null = null;
 var lastDialogueTitle = "";
 
+// Sistema de fila para mensagens de overlay (evita flood)
+interface OverlayMessage {
+	text: string;
+	color: number;
+	size: number;
+	x: number;
+	y: number;
+	duration: number;
+}
+
+var overlayQueue: OverlayMessage[] = [];
+var isShowingOverlay = false;
+
+// Mostra uma mensagem na fila de overlays
+function showOverlayQueued(text: string, color: number = a1lib.mixColor(16, 185, 129), size: number = 24, duration: number = 2000) {
+	if (!window.alt1) return;
+	
+	const message: OverlayMessage = {
+		text,
+		color,
+		size,
+		x: Math.round(alt1.rsWidth / 2),
+		y: Math.round(alt1.rsHeight / 2),
+		duration
+	};
+	
+	overlayQueue.push(message);
+	processOverlayQueue();
+}
+
+// Processa a fila de overlays (mostra apenas uma por vez)
+function processOverlayQueue() {
+	if (!window.alt1 || isShowingOverlay || overlayQueue.length === 0) {
+		return;
+	}
+	
+	isShowingOverlay = true;
+	const message = overlayQueue.shift()!;
+	
+	alt1.overLayTextEx(
+		message.text,
+		message.color,
+		message.size,
+		message.x,
+		message.y,
+		message.duration,
+		"",
+		true,
+		true
+	);
+	
+	// Após a duração, processa a próxima mensagem
+	setTimeout(() => {
+		isShowingOverlay = false;
+		processOverlayQueue();
+	}, message.duration);
+}
+
 // Carrega o estado salvo das zygomitas
 function loadState() {
 	const saved = localStorage.getItem("zygomites-state");
@@ -103,6 +161,29 @@ function saveState() {
 	localStorage.setItem("zygomites-state", JSON.stringify(zygomites));
 }
 
+// Alterna o estado de uma zygomita ao clicar nela
+export function toggleZygomite(zygomiteName: string) {
+	const zygomite = zygomites.find(z => z.name.toLowerCase() === zygomiteName.toLowerCase());
+	if (zygomite) {
+		zygomite.catched = !zygomite.catched;
+		saveState();
+		updateUI();
+		updateNPCSelector();
+		
+		// Feedback visual no jogo (usando fila para evitar flood)
+		showOverlayQueued(
+			zygomite.catched ? `✓ ${zygomite.name} marcada!` : `○ ${zygomite.name} desmarcada`,
+			zygomite.catched ? a1lib.mixColor(16, 185, 129) : a1lib.mixColor(156, 163, 175),
+			24,
+			2000
+		);
+		
+		output.insertAdjacentHTML("beforeend", `<div style="color: ${zygomite.catched ? '#10b981' : '#9ca3af'};">
+			${zygomite.catched ? '✓' : '○'} <strong>${zygomite.name}</strong> ${zygomite.catched ? 'marcada como capturada' : 'desmarcada'}
+		</div>`);
+	}
+}
+
 // Atualiza a interface visual
 function updateUI() {
 	const statusDiv = document.getElementById("status") || createStatusDiv();
@@ -112,9 +193,18 @@ function updateUI() {
 	statusDiv.innerHTML = `
 		<h3>Zygomitas Antigas de Anachronia</h3>
 		<p><strong>Capturadas:</strong> ${caughtCount}/${totalCount}</p>
+		<p style="font-size: 11px; color: #9ca3af; margin: 5px 0;">
+			💡 <strong>Dica:</strong> Clique no nome da zygomita para marcar/desmarcar manualmente
+		</p>
 		<div style="max-height: 350px; overflow-y: auto; margin-top: 10px;">
-			${zygomites.map(z => `
-				<div style="padding: 5px; margin: 2px 0; ${z.catched ? 'background-color: #10b981; color: white;' : 'background-color: #374151;'}">
+			${zygomites.map((z, index) => `
+				<div 
+					id="zygomite-${index}"
+					onclick="TestApp.toggleZygomite('${z.name.replace(/'/g, "\\'")}')"
+					style="padding: 8px; margin: 3px 0; ${z.catched ? 'background-color: #10b981; color: white;' : 'background-color: #374151; color: #e5e7eb;'} border-radius: 4px; cursor: pointer; transition: background-color 0.2s;"
+					onmouseover="this.style.opacity='0.8'"
+					onmouseout="this.style.opacity='1'"
+				>
 					${z.catched ? '✓' : '○'} ${z.name}
 				</div>
 			`).join('')}
@@ -229,20 +319,13 @@ function checkDialogue() {
 				updateUI();
 				updateNPCSelector();
 				
-				// Feedback visual no jogo
-				if (window.alt1) {
-					alt1.overLayTextEx(
-						`Zygomita encontrada: ${zygomite.name}!`,
-						a1lib.mixColor(16, 185, 129), // verde
-						24,
-						Math.round(alt1.rsWidth / 2),
-						Math.round(alt1.rsHeight / 2),
-						3000,
-						"",
-						true,
-						true
-					);
-				}
+				// Feedback visual no jogo (usando fila para evitar flood)
+				showOverlayQueued(
+					`Zygomita encontrada: ${zygomite.name}!`,
+					a1lib.mixColor(16, 185, 129), // verde
+					24,
+					3000
+				);
 				
 				output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;"><strong>✓ Zygomita capturada:</strong> ${zygomite.name} (detectado: "${title}")</div>`);
 				console.log(`✓ Match encontrado: ${zygomite.name} com "${title}"`);
@@ -313,19 +396,13 @@ export function markZygomiteManually(npcName: string) {
 		updateUI();
 		updateNPCSelector();
 		
-		if (window.alt1) {
-			alt1.overLayTextEx(
-				`✓ ${zygomite.name} marcada!`,
-				a1lib.mixColor(16, 185, 129),
-				24,
-				Math.round(alt1.rsWidth / 2),
-				Math.round(alt1.rsHeight / 2),
-				3000,
-				"",
-				true,
-				true
-			);
-		}
+		// Feedback visual no jogo (usando fila para evitar flood)
+		showOverlayQueued(
+			`✓ ${zygomite.name} marcada!`,
+			a1lib.mixColor(16, 185, 129),
+			24,
+			3000
+		);
 		
 		output.insertAdjacentHTML("beforeend", `<div style="color: #10b981;"><strong>✓ Zygomita marcada manualmente:</strong> ${zygomite.name}</div>`);
 		return true;
@@ -372,41 +449,18 @@ export function testDialogueRead() {
 }
 
 // Preenche o seletor de NPCs
+// Funções mantidas para compatibilidade (seletor foi removido)
 function populateNPCSelector() {
-	const selector = document.getElementById("npc-selector");
-	if (selector) {
-		zygomites.forEach(z => {
-			if (!z.catched) {
-				const option = document.createElement("option");
-				option.value = z.name;
-				option.textContent = z.name;
-				selector.appendChild(option);
-			}
-		});
-	}
+	// Não faz mais nada - funcionalidade movida para clique na lista
 }
 
-// Atualiza o seletor quando uma zygomita é marcada
 function updateNPCSelector() {
-	const selector = document.getElementById("npc-selector");
-	if (selector) {
-		selector.innerHTML = '<option value="">Selecione um NPC...</option>';
-		zygomites.forEach(z => {
-			if (!z.catched) {
-				const option = document.createElement("option");
-				option.value = z.name;
-				option.textContent = z.name;
-				selector.appendChild(option);
-			}
-		});
-	}
+	// Não faz mais nada - funcionalidade movida para clique na lista
 }
 
 // Inicialização
 loadState();
 updateUI();
-// Popula seletor após um pequeno delay para garantir que o DOM está pronto
-setTimeout(populateNPCSelector, 100);
 
 //check if we are running inside alt1 by checking if the alt1 global exists
 if (window.alt1) {
@@ -442,18 +496,6 @@ output.insertAdjacentHTML("beforeend", `
 		<button onclick='TestApp.testDialogueRead()' style="padding: 8px 16px; margin: 5px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
 			🧪 Testar Leitura (Debug)
 		</button>
-		<div style="margin-top: 10px; padding: 10px; background-color: #374151; border-radius: 4px;">
-			<strong style="color: #f59e0b;">⚠️ OCR Temporariamente Indisponível</strong>
-			<p style="font-size: 11px; color: #9ca3af; margin: 5px 0;">
-				Os métodos de OCR não estão funcionando. Use os botões abaixo para marcar zygomitas manualmente quando encontrar.
-			</p>
-			<select id="npc-selector" style="padding: 5px; margin: 5px 0; width: 100%; border-radius: 4px;">
-				<option value="">Selecione um NPC...</option>
-			</select>
-			<button onclick='const sel = document.getElementById("npc-selector"); if(sel.value) TestApp.markZygomiteManually(sel.value);' style="padding: 8px 16px; margin: 5px 0; background-color: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
-				✓ Marcar como Capturada
-			</button>
-		</div>
 		<p style="font-size: 12px; color: #9ca3af; margin-top: 10px;">
 			<strong>Nota:</strong> O plugin tentará ler automaticamente quando os métodos de OCR estiverem disponíveis.<br>
 			<strong>Debug:</strong> Abra o Console (F12) para ver logs detalhados.
