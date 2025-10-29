@@ -1,59 +1,51 @@
-name: Build and Deploy
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node.js (choose your version)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Build the app
       - name: Build project
         run: npm run build
 
-      # Upload build output as an artifact (optional but useful for deployment)
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload build output
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: dist
-          path: dist
+          path: ./dist
 
-  # Optional: deploy job (for GitHub Pages or static hosting)
   deploy:
-    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    needs: build
 
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      # Example: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+        id: deployment
+        uses: actions/deploy-pages@v4
