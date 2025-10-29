@@ -1,6 +1,6 @@
 {
-	"appName": "Anachronia Zygomite Tracker",
-	"description": "Tracks Ancient Zygomites caught in Anachronia by detecting NPC dialogue titles",
+	"appName": "AnachroniaZygoTracker",
+	"description": "Tracks Ancient Zygomites caught in Anachronia.",
 	"appUrl": "./index.html",
 	"configUrl": "./appconfig.json",
 	"iconUrl": "./icon.png",
