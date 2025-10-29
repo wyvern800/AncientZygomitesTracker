@@ -109,6 +109,126 @@ interface EventLog {
 var eventLogs: EventLog[] = [];
 const MAX_EVENT_LOGS = 100; // Mantém apenas os últimos 100 eventos
 
+// Sistema de tradução/i18n
+type Language = 'en' | 'pt';
+
+interface Translations {
+	status: string;
+	events: string;
+	zygomitesTitle: string;
+	captured: string;
+	startMonitoring: string;
+	stopMonitoring: string;
+	reset: string;
+	none: string;
+	eventLog: string;
+	noEvents: string;
+	tip: string;
+	tipText: string;
+	monitoringStarted: string;
+	monitoringStopped: string;
+	zygomiteCaught: string;
+	zygomiteMarked: string;
+	zygomiteUnmarked: string;
+	stateReset: string;
+	alt1NotDetected: string;
+	alt1AddApp: string;
+	[key: string]: string;
+}
+
+const translations: Record<Language, Translations> = {
+	en: {
+		status: "Status",
+		events: "Events",
+		zygomitesTitle: "Ancient Zygomites of Anachronia",
+		captured: "Captured",
+		startMonitoring: "Start Monitoring",
+		stopMonitoring: "Stop Monitoring",
+		reset: "Reset",
+		none: "none",
+		eventLog: "Event Log",
+		noEvents: "No events yet",
+		tip: "Tip:",
+		tipText: "Click on the zygomite name to manually mark/unmark",
+		monitoringStarted: "Monitoring started! Click on NPCs to capture zygomites.",
+		monitoringStopped: "Monitoring stopped",
+		zygomiteCaught: "Zygomite caught:",
+		zygomiteMarked: "marked as captured",
+		zygomiteUnmarked: "unmarked",
+		stateReset: "State reset - all zygomites marked as not captured",
+		alt1NotDetected: "Alt1 not detected, click",
+		alt1AddApp: "here",
+		toAddApp: "to add this app to Alt1",
+		monitoringActive: "Monitoring already active",
+		needsAlt1: "You need to run this in Alt1 to monitor dialogues",
+		noPixelPermission: "Pixel capture permission not enabled",
+		npnNotFound: "NPC not found in list",
+		alreadyMarked: "already marked previously",
+		alt1NotAvailable: "Alt1 not available or no permission"
+	},
+	pt: {
+		status: "Status",
+		events: "Eventos",
+		zygomitesTitle: "Zygomitas Antigas de Anachronia",
+		captured: "Capturadas",
+		startMonitoring: "Iniciar Monitoramento",
+		stopMonitoring: "Parar Monitoramento",
+		reset: "Resetar",
+		none: "nenhum",
+		eventLog: "Log de Eventos",
+		noEvents: "Nenhum evento ainda",
+		tip: "Dica:",
+		tipText: "Clique no nome da zygomita para marcar/desmarcar manualmente",
+		monitoringStarted: "Monitoramento iniciado! Clique em NPCs para capturar zygomitas.",
+		monitoringStopped: "Monitoramento parado",
+		zygomiteCaught: "Zygomita capturada:",
+		zygomiteMarked: "marcada como capturada",
+		zygomiteUnmarked: "desmarcada",
+		stateReset: "Estado resetado - todas as zygomitas marcadas como não capturadas",
+		alt1NotDetected: "Alt1 não detectado, clique",
+		alt1AddApp: "aqui",
+		toAddApp: "para adicionar este app ao Alt1",
+		monitoringActive: "Monitoramento já está ativo",
+		needsAlt1: "Você precisa executar isso no Alt1 para monitorar diálogos",
+		noPixelPermission: "Permissão de captura de pixels não está habilitada",
+		npnNotFound: "NPC não encontrado na lista",
+		alreadyMarked: "já foi marcada anteriormente",
+		alt1NotAvailable: "Alt1 não disponível ou sem permissão"
+	}
+};
+
+var currentLanguage: Language = 'en'; // Inglês como padrão
+
+function t(key: string): string {
+	return translations[currentLanguage][key] || key;
+}
+
+function setLanguage(lang: Language) {
+	currentLanguage = lang;
+	saveLanguagePreference(lang);
+	updateUI();
+}
+
+function loadLanguagePreference(): Language {
+	try {
+		const saved = localStorage.getItem('zygomite-tracker-language');
+		if (saved === 'en' || saved === 'pt') {
+			return saved;
+		}
+	} catch (e) {
+		console.error("Error loading language preference:", e);
+	}
+	return 'en';
+}
+
+function saveLanguagePreference(lang: Language) {
+	try {
+		localStorage.setItem('zygomite-tracker-language', lang);
+	} catch (e) {
+		console.error("Error saving language preference:", e);
+	}
+}
+
 // Adiciona um evento ao log
 function addEventLog(message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') {
 	const event: EventLog = {
@@ -218,31 +338,37 @@ function updateUI() {
 	const caughtCount = zygomites.filter(z => z.catched).length;
 	const totalCount = zygomites.length;
 	
+	const langButtonText = currentLanguage === 'en' ? 'PT' : 'EN';
+	const langButtonTitle = currentLanguage === 'en' ? 'Switch to Portuguese' : 'Switch to English';
+	
 	statusDiv.innerHTML = `
 		<div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700">
 			<div class="flex gap-2">
 				<button id="tab-status" onclick="switchTab('status')" class="px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600">
-					Status
+					${t('status')}
 				</button>
 				<button id="tab-events" onclick="switchTab('events')" class="px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200">
-					Eventos (${eventLogs.length})
+					${t('events')} (${eventLogs.length})
 				</button>
 			</div>
 			<div class="flex gap-2 items-center">
-				<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="Iniciar Monitoramento">
+				<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="${t('startMonitoring')}">
 					<i class="bi bi-play-fill"></i>
 				</button>
-				<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="Parar Monitoramento">
+				<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="${t('stopMonitoring')}">
 					<i class="bi bi-pause-fill"></i>
 				</button>
-				<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="Resetar">
+				<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="${t('reset')}">
 					<i class="bi bi-arrow-clockwise"></i>
+				</button>
+				<button onclick='TestApp.toggleLanguage()' class="w-8 h-8 p-2 bg-blue-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-blue-600 text-xs font-bold" title="${langButtonTitle}">
+					${langButtonText}
 				</button>
 			</div>
 		</div>
 		
 		<div id="tab-content-status" class="tab-content block">
-			<h3 class="text-white text-center mt-0 mb-4 text-xl font-semibold">Zygomitas Antigas de Anachronia</h3>
+			<h3 class="text-white text-center mt-0 mb-4 text-xl font-semibold">${t('zygomitesTitle')}</h3>
 			
 			<div class="max-h-[350px] overflow-y-auto mt-2 space-y-2">
 				${zygomites.map((z, index) => `
@@ -256,11 +382,11 @@ function updateUI() {
 					</div>
 				`).join('')}
 			</div>
-			<p class="text-center mt-4 mb-0 text-white font-semibold">Capturadas: ${caughtCount}/${totalCount}</p>
+			<p class="text-center mt-4 mb-0 text-white font-semibold">${t('captured')}: ${caughtCount}/${totalCount}</p>
 		</div>
 		
 		<div id="tab-content-events" class="tab-content hidden">
-			<h3 class="text-white text-lg font-semibold mb-2">Log de Eventos</h3>
+			<h3 class="text-white text-lg font-semibold mb-2">${t('eventLog')}</h3>
 			<div id="events-list" class="max-h-[400px] overflow-y-auto mt-2 space-y-2">
 				${renderEventsList()}
 			</div>
@@ -311,12 +437,12 @@ function updateEventsTab() {
 	}
 	
 	if (tabEvents) {
-		tabEvents.textContent = `Eventos (${eventLogs.length})`;
+		tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
 	}
 }
 
 // Função global para trocar de aba
-(window as any).switchTab = function(tabName: 'status' | 'events') {
+(window as any).switchTab = 	function(tabName: 'status' | 'events') {
 	// Atualiza botões
 	const tabStatus = document.getElementById("tab-status");
 	const tabEvents = document.getElementById("tab-events");
@@ -326,18 +452,22 @@ function updateEventsTab() {
 	if (tabName === 'status') {
 		if (tabStatus) {
 			tabStatus.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+			tabStatus.textContent = t('status');
 		}
 		if (tabEvents) {
 			tabEvents.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+			tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
 		}
 		if (contentStatus) contentStatus.className = "tab-content block";
 		if (contentEvents) contentEvents.className = "tab-content hidden";
 	} else {
 		if (tabStatus) {
 			tabStatus.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+			tabStatus.textContent = t('status');
 		}
 		if (tabEvents) {
 			tabEvents.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+			tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
 		}
 		if (contentStatus) contentStatus.className = "tab-content hidden";
 		if (contentEvents) contentEvents.className = "tab-content block";
@@ -457,7 +587,8 @@ function checkDialogue() {
 					3000
 				);
 				
-				const message = `<strong>✓ Zygomita capturada:</strong> ${zygomite.name} (detectado: "${title}")`;
+				const detectedText = currentLanguage === 'en' ? 'detected' : 'detectado';
+				const message = `<strong>✓ ${t('zygomiteCaught')}</strong> ${zygomite.name} (${detectedText}: "${title}")`;
 				addEventLog(message, 'success');
 				console.log(`✓ Match encontrado: ${zygomite.name} com "${title}"`);
 				break;
@@ -469,22 +600,22 @@ function checkDialogue() {
 // Inicia o monitoramento do diálogo
 export function startMonitoring() {
 	if (isMonitoring) {
-		addEventLog("Monitoramento já está ativo", 'warning');
+		addEventLog(t('monitoringActive'), 'warning');
 		return;
 	}
 
 	if (!window.alt1) {
-		addEventLog("Você precisa executar isso no Alt1 para monitorar diálogos", 'error');
+		addEventLog(t('needsAlt1'), 'error');
 		return;
 	}
 
 	if (!alt1.permissionPixel) {
-		addEventLog("Permissão de captura de pixels não está habilitada", 'error');
+		addEventLog(t('noPixelPermission'), 'error');
 		return;
 	}
 
 	isMonitoring = true;
-	addEventLog("<strong>Monitoramento iniciado!</strong> Clique em NPCs para capturar zygomitas.", 'info');
+	addEventLog(`<strong>${t('monitoringStarted')}</strong>`, 'info');
 	
 	// Verifica o diálogo a cada 100ms para detecção mais fluida e responsiva
 	monitorInterval = setInterval(() => {
@@ -504,7 +635,7 @@ export function stopMonitoring() {
 		monitorInterval = null;
 	}
 	
-	addEventLog("Monitoramento parado", 'info');
+	addEventLog(t('monitoringStopped'), 'info');
 }
 
 // Reseta todas as zygomitas
@@ -515,7 +646,7 @@ export function resetZygomites() {
 	// Limpa o último título detectado para permitir detectar novamente após reset
 	lastDialogueTitle = "";
 	updateNPCSelector();
-	addEventLog("Estado resetado - todas as zygomitas marcadas como não capturadas", 'warning');
+	addEventLog(t('stateReset'), 'warning');
 }
 
 // Marca uma zygomita manualmente pelo nome
@@ -535,12 +666,12 @@ export function markZygomiteManually(npcName: string) {
 			3000
 		);
 		
-		addEventLog(`<strong>✓ Zygomita marcada manualmente:</strong> ${zygomite.name}`, 'success');
+		addEventLog(`<strong>✓ ${t('zygomiteMarked')}:</strong> ${zygomite.name}`, 'success');
 		return true;
 	} else if (!zygomite) {
-		addEventLog(`NPC não encontrado na lista: ${npcName}`, 'error');
+		addEventLog(`${t('npnNotFound')}: ${npcName}`, 'error');
 	} else if (zygomite.catched) {
-		addEventLog(`${zygomite.name} já foi marcada anteriormente`, 'warning');
+		addEventLog(`${zygomite.name} ${t('alreadyMarked')}`, 'warning');
 	}
 	return false;
 }
@@ -548,7 +679,7 @@ export function markZygomiteManually(npcName: string) {
 // Função de teste para debug - mostra visualmente a região sendo lida
 export function testDialogueRead() {
 	if (!window.alt1 || !alt1.permissionPixel) {
-		addEventLog("Alt1 não disponível ou sem permissão", 'error');
+		addEventLog(t('alt1NotAvailable'), 'error');
 		return;
 	}
 
@@ -589,8 +720,15 @@ function updateNPCSelector() {
 	// Não faz mais nada - funcionalidade movida para clique na lista
 }
 
+// Função para trocar idioma
+export function toggleLanguage() {
+	currentLanguage = currentLanguage === 'en' ? 'pt' : 'en';
+	setLanguage(currentLanguage);
+}
+
 // Inicialização
 loadState();
+currentLanguage = loadLanguagePreference();
 updateUI();
 
 //check if we are running inside alt1 by checking if the alt1 global exists
@@ -608,5 +746,4 @@ if (window.alt1) {
 	`);
 }
 
-// Debug text - mantido para feedback, mas não precisa de seção separada
 
