@@ -349,7 +349,7 @@ function updateEventsTab() {
 function createStatusDiv(): HTMLElement {
 	const div = document.createElement("div");
 	div.id = "status";
-	div.className = "p-4 my-4 bg-gray-800 rounded-lg";
+	div.className = "p-4 bg-gray-800 rounded-lg";
 	output.appendChild(div);
 	return div;
 }
