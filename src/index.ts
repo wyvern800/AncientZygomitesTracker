@@ -99,6 +99,9 @@ interface OverlayMessage {
 var overlayQueue: OverlayMessage[] = [];
 var isShowingOverlay = false;
 
+// Estado de confirmação do reset
+var isResetConfirming = false;
+
 // Sistema de log de eventos
 interface EventLog {
 	timestamp: Date;
@@ -164,7 +167,12 @@ const translations: Record<Language, Translations> = {
 		noPixelPermission: "Pixel capture permission not enabled",
 		npnNotFound: "NPC not found in list",
 		alreadyMarked: "already marked previously",
-		alt1NotAvailable: "Alt1 not available or no permission"
+		alt1NotAvailable: "Alt1 not available or no permission",
+		zygomiteFound: "Zygomite found",
+		found: "found",
+		confirmReset: "Confirm reset",
+		confirmResetTitle: "Confirm reset",
+		resetCompleted: "Reset completed"
 	},
 	pt: {
 		status: "Status",
@@ -193,7 +201,12 @@ const translations: Record<Language, Translations> = {
 		noPixelPermission: "Permissão de captura de pixels não está habilitada",
 		npnNotFound: "NPC não encontrado na lista",
 		alreadyMarked: "já foi marcada anteriormente",
-		alt1NotAvailable: "Alt1 não disponível ou sem permissão"
+		alt1NotAvailable: "Alt1 não disponível ou sem permissão",
+		zygomiteFound: "Zygomita encontrada",
+		found: "encontrado",
+		confirmReset: "Confirmar reset",
+		confirmResetTitle: "Confirmar reset",
+		resetCompleted: "Reset concluído"
 	}
 };
 
@@ -320,14 +333,18 @@ export function toggleZygomite(zygomiteName: string) {
 		updateNPCSelector();
 		
 		// Feedback visual no jogo (usando fila para evitar flood)
+		const overlayText = zygomite.catched 
+			? `✓ ${zygomite.name} ${currentLanguage === 'en' ? 'found' : t('found')}!`
+			: `○ ${zygomite.name} ${t('zygomiteUnmarked')}`;
+		
 		showOverlayQueued(
-			zygomite.catched ? `✓ ${zygomite.name} encontrado!` : `○ ${zygomite.name} desmarcada`,
+			overlayText,
 			zygomite.catched ? a1lib.mixColor(16, 185, 129) : a1lib.mixColor(156, 163, 175),
 			24,
 			2000
 		);
 		
-		const message = `${zygomite.catched ? '✓' : '○'} <strong>${zygomite.name}</strong> ${zygomite.catched ? 'marcada como capturada' : 'desmarcada'}`;
+		const message = `${zygomite.catched ? '✓' : '○'} <strong>${zygomite.name}</strong> ${zygomite.catched ? t('zygomiteMarked') : t('zygomiteUnmarked')}`;
 		addEventLog(message, zygomite.catched ? 'success' : 'info');
 	}
 }
@@ -352,15 +369,29 @@ function updateUI() {
 				</button>
 			</div>
 			<div class="flex gap-2 items-center">
-				<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="${t('startMonitoring')}">
-					<i class="bi bi-play-fill"></i>
-				</button>
-				<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="${t('stopMonitoring')}">
-					<i class="bi bi-pause-fill"></i>
-				</button>
-				<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="${t('reset')}">
-					<i class="bi bi-arrow-clockwise"></i>
-				</button>
+				${isMonitoring ? `
+					<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="${t('stopMonitoring')}">
+						<i class="bi bi-pause-fill"></i>
+					</button>
+				` : `
+					<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="${t('startMonitoring')}">
+						<i class="bi bi-play-fill"></i>
+					</button>
+				`}
+				${isResetConfirming ? `
+					<button 
+						id="reset-confirm-btn"
+						onclick='TestApp.confirmReset()' 
+						onmouseleave='TestApp.cancelReset()'
+						class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" 
+						title="${t('confirmResetTitle')}">
+						<i class="bi bi-check-lg"></i>
+					</button>
+				` : `
+					<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="${t('reset')}">
+						<i class="bi bi-arrow-clockwise"></i>
+					</button>
+				`}
 				<button onclick='TestApp.toggleLanguage()' class="w-8 h-8 p-2 bg-blue-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-blue-600 text-xs font-bold" title="${langButtonTitle}">
 					${langButtonText}
 				</button>
@@ -581,7 +612,7 @@ function checkDialogue() {
 				
 				// Feedback visual no jogo (usando fila para evitar flood)
 				showOverlayQueued(
-					`Zygomita encontrada: ${zygomite.name}!`,
+					`${t('zygomiteFound')}: ${zygomite.name}!`,
 					a1lib.mixColor(16, 185, 129), // verde
 					24,
 					3000
@@ -617,6 +648,16 @@ export function startMonitoring() {
 	isMonitoring = true;
 	addEventLog(`<strong>${t('monitoringStarted')}</strong>`, 'info');
 	
+	// Mostra mensagem no centro da tela
+	showOverlayQueued(
+		currentLanguage === 'en' ? 'Monitoring Started' : 'Monitoramento Iniciado',
+		a1lib.mixColor(16, 185, 129), // verde
+		24,
+		2000
+	);
+	
+	updateUI(); // Atualiza a UI para mostrar o botão de pause
+	
 	// Verifica o diálogo a cada 100ms para detecção mais fluida e responsiva
 	monitorInterval = setInterval(() => {
 		checkDialogue();
@@ -636,10 +677,27 @@ export function stopMonitoring() {
 	}
 	
 	addEventLog(t('monitoringStopped'), 'info');
+	
+	// Mostra mensagem no centro da tela
+	showOverlayQueued(
+		currentLanguage === 'en' ? 'Monitoring Stopped' : 'Monitoramento Parado',
+		a1lib.mixColor(239, 68, 68), // vermelho
+		24,
+		2000
+	);
+	
+	updateUI(); // Atualiza a UI para mostrar o botão de play
 }
 
-// Reseta todas as zygomitas
+// Mostra confirmação do reset
 export function resetZygomites() {
+	isResetConfirming = true;
+	updateUI();
+}
+
+// Confirma e executa o reset
+export function confirmReset() {
+	isResetConfirming = false;
 	zygomites.forEach(z => z.catched = false);
 	saveState();
 	updateUI();
@@ -647,6 +705,20 @@ export function resetZygomites() {
 	lastDialogueTitle = "";
 	updateNPCSelector();
 	addEventLog(t('stateReset'), 'warning');
+	
+	// Mostra mensagem no centro da tela
+	showOverlayQueued(
+		t('resetCompleted'),
+		a1lib.mixColor(245, 158, 11), // amarelo/laranja
+		24,
+		2000
+	);
+}
+
+// Cancela a confirmação do reset
+export function cancelReset() {
+	isResetConfirming = false;
+	updateUI();
 }
 
 // Marca uma zygomita manualmente pelo nome
