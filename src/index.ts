@@ -118,7 +118,7 @@ function checkAllCaptured() {
 }
 
 // Sistema de tradução/i18n
-type Language = 'en' | 'pt';
+type Language = 'en' | 'pt' | 'es' | 'de';
 
 interface Translations {
 	status: string;
@@ -149,7 +149,7 @@ const translations: Record<Language, Translations> = {
 		status: "Status",
 		events: "Events",
 		zygomitesTitle: "Ancient Zygomites of Anachronia",
-		captured: "Captured",
+		captured: "Spotted",
 		startMonitoring: "Start Monitoring",
 		stopMonitoring: "Stop Monitoring",
 		reset: "Reset",
@@ -177,13 +177,15 @@ const translations: Record<Language, Translations> = {
 		found: "found",
 		confirmReset: "Confirm reset",
 		confirmResetTitle: "Confirm reset",
-		resetCompleted: "Reset completed"
+		resetCompleted: "Reset completed",
+		hints: "Help",
+		hintGameEnglish: "Set the game language to English for best detection"
 	},
 	pt: {
 		status: "Status",
 		events: "Eventos",
 		zygomitesTitle: "Zygomitas Antigas de Anachronia",
-		captured: "Capturadas",
+		captured: "Encontradas",
 		startMonitoring: "Iniciar Monitoramento",
 		stopMonitoring: "Parar Monitoramento",
 		reset: "Resetar",
@@ -211,7 +213,81 @@ const translations: Record<Language, Translations> = {
 		found: "encontrado",
 		confirmReset: "Confirmar reset",
 		confirmResetTitle: "Confirmar reset",
-		resetCompleted: "Reset concluído"
+		resetCompleted: "Reset concluído",
+			hints: "Ajuda",
+			hintGameEnglish: "Deixe a linguagem do jogo em inglês para funcionar"
+	},
+	es: {
+		status: "Estado",
+		events: "Eventos",
+		zygomitesTitle: "Zygomitas Antiguas de Anachronia",
+		captured: "Capturadas",
+		startMonitoring: "Iniciar monitoreo",
+		stopMonitoring: "Detener monitoreo",
+		reset: "Reiniciar",
+		none: "ninguno",
+		eventLog: "Registro de eventos",
+		noEvents: "Aún no hay eventos",
+		tip: "Consejo:",
+		tipText: "Haz clic en el nombre para marcar/desmarcar manualmente",
+		monitoringStarted: "¡Monitoreo iniciado! Haz clic en NPCs para capturar zygomitas.",
+		monitoringStopped: "Monitoreo detenido",
+		zygomiteCaught: "Zygomita capturada:",
+		zygomiteMarked: "marcada como capturada",
+		zygomiteUnmarked: "desmarcada",
+		stateReset: "Estado reiniciado - todas marcadas como no capturadas",
+		alt1NotDetected: "Alt1 no detectado, haz clic",
+		alt1AddApp: "aquí",
+		toAddApp: "para añadir esta app a Alt1",
+		monitoringActive: "El monitoreo ya está activo",
+		needsAlt1: "Necesitas ejecutar esto en Alt1 para monitorear diálogos",
+		noPixelPermission: "Permiso de captura de píxeles no habilitado",
+		npnNotFound: "NPC no encontrado en la lista",
+		alreadyMarked: "ya estaba marcada",
+		alt1NotAvailable: "Alt1 no disponible o sin permiso",
+		zygomiteFound: "Zygomita encontrada",
+		found: "encontrada",
+		confirmReset: "Confirmar reinicio",
+		confirmResetTitle: "Confirmar reinicio",
+		resetCompleted: "Reinicio completado",
+			hints: "Ayuda",
+			hintGameEnglish: "Pon el idioma del juego en inglés para que funcione"
+	},
+	de: {
+		status: "Status",
+		events: "Ereignisse",
+		zygomitesTitle: "Uralte Zygomiten von Anachronia",
+		captured: "Gefunden",
+		startMonitoring: "Überwachung starten",
+		stopMonitoring: "Überwachung stoppen",
+		reset: "Zurücksetzen",
+		none: "keine",
+		eventLog: "Ereignisprotokoll",
+		noEvents: "Noch keine Ereignisse",
+		tip: "Tipp:",
+		tipText: "Klicke auf den Namen zum Markieren/Entfernen",
+		monitoringStarted: "Überwachung gestartet! Klicke auf NPCs, um Zygomiten zu erfassen.",
+		monitoringStopped: "Überwachung gestoppt",
+		zygomiteCaught: "Zygomit erfasst:",
+		zygomiteMarked: "als erfasst markiert",
+		zygomiteUnmarked: "Markierung entfernt",
+		stateReset: "Status zurückgesetzt - alle als nicht erfasst markiert",
+		alt1NotDetected: "Alt1 nicht erkannt, klicke",
+		alt1AddApp: "hier",
+		toAddApp: "um diese App zu Alt1 hinzuzufügen",
+		monitoringActive: "Überwachung bereits aktiv",
+		needsAlt1: "In Alt1 ausführen, um Dialoge zu überwachen",
+		noPixelPermission: "Berechtigung zur Pixelaufnahme fehlt",
+		npnNotFound: "NPC nicht in der Liste",
+		alreadyMarked: "bereits markiert",
+		alt1NotAvailable: "Alt1 nicht verfügbar oder keine Berechtigung",
+		zygomiteFound: "Zygomit gefunden",
+		found: "gefunden",
+		confirmReset: "Zurücksetzen bestätigen",
+		confirmResetTitle: "Zurücksetzen bestätigen",
+		resetCompleted: "Zurücksetzen abgeschlossen",
+			hints: "Hilfe",
+			hintGameEnglish: "Stelle die Spielsprache auf Englisch, damit es funktioniert"
 	}
 };
 
@@ -230,7 +306,7 @@ function setLanguage(lang: Language) {
 function loadLanguagePreference(): Language {
 	try {
 		const saved = localStorage.getItem('zygomite-tracker-language');
-		if (saved === 'en' || saved === 'pt') {
+		if (saved === 'en' || saved === 'pt' || saved === 'es' || saved === 'de') {
 			return saved;
 		}
 	} catch (e) {
@@ -372,70 +448,97 @@ function updateUI() {
 	const caughtCount = zygomites.filter(z => z.catched).length;
 	const totalCount = zygomites.length;
 	
-	const langButtonText = currentLanguage === 'en' ? 'PT' : 'EN';
+	const nextLangOrder: Language[] = ['en', 'pt', 'es', 'de'];
+	const nextLang = nextLangOrder[(nextLangOrder.indexOf(currentLanguage) + 1) % nextLangOrder.length];
+	const flagFor: Record<Language, string> = { en: 'fi fi-us', pt: 'fi fi-br', es: 'fi fi-es', de: 'fi fi-de' };
+	const langButtonClass = flagFor[nextLang];
 	const langButtonTitle = currentLanguage === 'en' ? 'Switch to Portuguese' : 'Switch to English';
 	
 	statusDiv.innerHTML = `
-		<div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700">
-			<div class="flex gap-2">
-				<button id="tab-status" onclick="switchTab('status')" class="px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600">
-					${t('status')}
-				</button>
-				<button id="tab-events" onclick="switchTab('events')" class="px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200">
-					${t('events')} (${eventLogs.length})
-				</button>
-			</div>
-			<div class="flex gap-2 items-center">
-				${isMonitoring ? `
-					<button onclick='TestApp.stopMonitoring()' class="w-8 h-8 p-2 bg-red-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-red-600" title="${t('stopMonitoring')}">
-						<i class="bi bi-pause-fill"></i>
-					</button>
-				` : `
-					<button onclick='TestApp.startMonitoring()' class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" title="${t('startMonitoring')}">
-						<i class="bi bi-play-fill"></i>
-					</button>
-				`}
-				${isResetConfirming ? `
-					<button 
-						id="reset-confirm-btn"
-						onclick='TestApp.confirmReset()' 
-						onmouseleave='TestApp.cancelReset()'
-						class="w-8 h-8 p-2 bg-emerald-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-emerald-600" 
-						title="${t('confirmResetTitle')}">
-						<i class="bi bi-check-lg"></i>
-					</button>
-				` : `
-					<button onclick='TestApp.resetZygomites()' class="w-8 h-8 p-2 bg-amber-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-amber-600" title="${t('reset')}">
-						<i class="bi bi-arrow-clockwise"></i>
-					</button>
-				`}
-				<button onclick='TestApp.toggleLanguage()' class="w-8 h-8 p-2 bg-blue-500 text-white rounded cursor-pointer flex items-center justify-center transition-colors hover:bg-blue-600 text-xs font-bold" title="${langButtonTitle}">
-					${langButtonText}
-				</button>
+		<div class="menubar" style="margin-bottom:4px;">
+			<div>
+				<div id="tab-hints" onclick="switchTab('hints')" class="contenttab">${t('hints')}</div>
+				<div id="tab-events" onclick="switchTab('events')" class="contenttab">${t('events')} (${eventLogs.length})</div>
+				<div id="tab-status" onclick="switchTab('status')" class="contenttab activetab">${t('status')}</div>
 			</div>
 		</div>
-		
-		<div id="tab-content-status" class="tab-content block">
-			<h3 class="text-white text-center mt-0 mb-4 text-xl font-semibold">${t('zygomitesTitle')}</h3>
-			
-			<div class="max-h-[350px] overflow-y-auto mt-2 space-y-2">
-				${zygomites.map((z, index) => `
-					<div 
-						id="zygomite-${index}"
-						onclick="TestApp.toggleZygomite('${z.name.replace(/'/g, "\\'")}')"
-						class="px-3 py-2 rounded cursor-pointer flex justify-between items-center transition-all hover:opacity-80 ${z.catched ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}"
-					>
-						<span class="font-medium">${z.name}</span>
-						<i class="bi ${z.catched ? 'bi-check-circle-fill' : 'bi-circle'}"></i>
+
+
+		<div id="tab-content-status" class="tab-content" style="display:block;">
+			<h3 style="text-align:center; margin:0 0 8px 0;">${t('zygomitesTitle')}</h3>
+
+			<div class="possibleswrapper" style="max-height:350px; overflow-y:auto;">
+				<div class="possibles">
+					<table class="nistable solutiontable" style="width:100%; text-align:left;">
+						<tr>
+							<th style="width:75%">Name</th>
+							<th style="width:25%; text-align:center">${t('captured')}</th>
+						</tr>
+						${zygomites.map((z, index) => `
+							<tr id="zygomite-${index}" class="${z.catched ? 'targetfish' : ''}" onclick="TestApp.toggleZygomite('${z.name.replace(/'/g, "\\'")}')" style="cursor:pointer;">
+								<td><span style="color:${z.catched ? '#9AE66E' : 'inherit'}">${z.name}</span></td>
+								<td style="text-align:center;"><i class="bi ${z.catched ? 'bi-check-circle-fill' : 'bi-circle'}" style="color:${z.catched ? '#9AE66E' : 'inherit'}"></i></td>
+							</tr>
+						`).join('')}
+					</table>
+				</div>
+			</div>
+			<div class="suggestbar" style="justify-content:space-between; align-items:center; margin-top:6px;">
+				<div class="suggestentry">
+					<div class="suggesthead">${t('captured')}: </div>
+					<div class="suggestvalue">${caughtCount}/${totalCount}</div>
+				</div>
+				<div style="display:flex; gap:4px;">
+					${isMonitoring ? `
+						<div onclick='TestApp.stopMonitoring()' class="menubutton nisbutton2" title="${t('stopMonitoring')}">
+							<i class="bi bi-pause-fill"></i>
+						</div>
+					` : `
+						<div onclick='TestApp.startMonitoring()' class="menubutton nisbutton2" title="${t('startMonitoring')}">
+							<i class="bi bi-play-fill"></i>
+						</div>
+					`}
+					${isResetConfirming ? `
+						<div 
+							id="reset-confirm-btn"
+							onclick='TestApp.confirmReset()' 
+							onmouseleave='TestApp.cancelReset()'
+							class="menubutton nisbutton2" 
+							title="${t('confirmResetTitle')}">
+							<i class="bi bi-check-lg"></i>
+						</div>
+					` : `
+						<div onclick='TestApp.resetZygomites()' class="menubutton nisbutton2" title="${t('reset')}">
+							<i class="bi bi-arrow-clockwise"></i>
+						</div>
+					`}
+					<div onclick='TestApp.toggleLanguage()' class="menubutton nisbutton2" title="${langButtonTitle}">
+						<span class="${langButtonClass}" style="display:inline-block; height:16px; width:24px;"></span>
 					</div>
-				`).join('')}
+				</div>
 			</div>
-			<p class="text-center mt-4 mb-0 text-white font-semibold">${t('captured')}: ${caughtCount}/${totalCount}</p>
+			
 		</div>
-		
-		<div id="tab-content-events" class="tab-content hidden">
-			<h3 class="text-white text-lg font-semibold mb-2">${t('eventLog')}</h3>
-			<div id="events-list" class="max-h-[400px] overflow-y-auto mt-2 space-y-2">
+
+		<div id="tab-content-hints" class="tab-content" style="display:none;">
+			<h3 style="margin:0 0 6px 0;">${t('hints')}</h3>
+			<table class="nistable solutiontable" style="width:100%; text-align:left;">
+				<tr>
+					<td colspan="2" style="color:#45d1ff; font-weight:bold;">${t('hintGameEnglish')}</td>
+				</tr>
+				<tr><th>Action</th><th>Description</th></tr>
+				<tr><td>Start</td><td>Click the play button to begin monitoring.</td></tr>
+				<tr><td>Auto-detect</td><td>When you talk to a zygomite, its name is read and the row is marked.</td></tr>
+				<tr><td>Manual mark</td><td>Click a row to toggle captured if auto-detect misses it.</td></tr>
+				<tr><td>Reset</td><td>Use the reset button to clear all marks. Confirm appears next.</td></tr>
+				<tr><td>Language</td><td>Click the flag to switch languages.</td></tr>
+				<tr><td>Tips</td><td>Keep the NPC chatbox visible; enable pixel permission in Alt1.</td></tr>
+			</table>
+		</div>
+
+		<div id="tab-content-events" class="tab-content" style="display:none;">
+			<h3 style="margin:0 0 6px 0;">${t('eventLog')}</h3>
+			<div id="events-list" style="max-height:400px; overflow-y:auto;">
 				${renderEventsList()}
 			</div>
 		</div>
@@ -490,37 +593,56 @@ function updateEventsTab() {
 }
 
 // Função global para trocar de aba
-(window as any).switchTab = 	function(tabName: 'status' | 'events') {
+
+(window as any).switchTab = 	function(tabName: 'status' | 'events' | 'hints') {
 	// Atualiza botões
 	const tabStatus = document.getElementById("tab-status");
 	const tabEvents = document.getElementById("tab-events");
+	const tabHints = document.getElementById("tab-hints");
 	const contentStatus = document.getElementById("tab-content-status");
 	const contentEvents = document.getElementById("tab-content-events");
+	const contentHints = document.getElementById("tab-content-hints");
 	
 	if (tabName === 'status') {
 		if (tabStatus) {
-			tabStatus.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+			tabStatus.className = "contenttab activetab";
 			tabStatus.textContent = t('status');
 		}
 		if (tabEvents) {
-			tabEvents.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+			tabEvents.className = "contenttab";
 			tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
 		}
-		if (contentStatus) contentStatus.className = "tab-content block";
-		if (contentEvents) contentEvents.className = "tab-content hidden";
-	} else {
+		if (tabHints) tabHints.className = "contenttab";
+		if (contentStatus) contentStatus.setAttribute('style', 'display:block;');
+		if (contentEvents) contentEvents.setAttribute('style', 'display:none;');
+		if (contentHints) contentHints.setAttribute('style', 'display:none;');
+	} else if (tabName === 'events') {
 		if (tabStatus) {
-			tabStatus.className = "px-5 py-2 bg-gray-700 text-gray-400 border-none rounded-t-lg cursor-pointer transition-colors hover:bg-gray-600 hover:text-gray-200";
+			tabStatus.className = "contenttab";
 			tabStatus.textContent = t('status');
 		}
 		if (tabEvents) {
-			tabEvents.className = "px-5 py-2 bg-emerald-500 text-white border-none rounded-t-lg cursor-pointer font-bold transition-colors hover:bg-emerald-600";
+			tabEvents.className = "contenttab activetab";
 			tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
 		}
-		if (contentStatus) contentStatus.className = "tab-content hidden";
-		if (contentEvents) contentEvents.className = "tab-content block";
+		if (tabHints) tabHints.className = "contenttab";
+		if (contentStatus) contentStatus.setAttribute('style', 'display:none;');
+		if (contentEvents) contentEvents.setAttribute('style', 'display:block;');
 		// Atualiza eventos quando a aba é aberta
 		updateEventsTab();
+	} else if (tabName === 'hints') {
+		if (tabStatus) {
+			tabStatus.className = "contenttab";
+			tabStatus.textContent = t('status');
+		}
+		if (tabEvents) {
+			tabEvents.className = "contenttab";
+			tabEvents.textContent = `${t('events')} (${eventLogs.length})`;
+		}
+		if (tabHints) tabHints.className = "contenttab activetab";
+		if (contentStatus) contentStatus.setAttribute('style', 'display:none;');
+		if (contentEvents) contentEvents.setAttribute('style', 'display:none;');
+		if (contentHints) contentHints.setAttribute('style', 'display:block;');
 	}
 };
 
@@ -827,7 +949,10 @@ function updateNPCSelector() {
 
 // Função para trocar idioma
 export function toggleLanguage() {
-	currentLanguage = currentLanguage === 'en' ? 'pt' : 'en';
+	const order: Language[] = ['en', 'pt', 'es', 'de'];
+	const idx = order.indexOf(currentLanguage);
+	const next = order[(idx + 1) % order.length];
+	currentLanguage = next;
 	setLanguage(currentLanguage);
 }
 

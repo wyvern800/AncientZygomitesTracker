@@ -1,10 +1,32 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" type="text/css" href="./nis/nis.css">
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-GX0CL331X8"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			gtag('config', 'G-GX0CL331X8');
+		</script>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@6.6.6/css/flag-icons.min.css">
+		<link rel="stylesheet" type="text/css" href="/nis/nis.css">
+		<link rel="stylesheet" type="text/css" href="/nis/alt1-currentskin/skinstyle.css">	
+		<style type="text/css">
+
+			.wrapper{display:flex; flex-direction:column; position:absolute; width:100%; height:100%;}
+			.menubar{display:flex;}
+				.menubutton{margin:2px; flex-grow:1;}
+			.suggestbar{display:flex; padding:2px 4px;}
+				.suggestentry{flex-grow:1;}
+					.suggesthead{display:inline;}
+					.suggestvalue{font-weight:bold; display:inline; color:white;}
+
+		</style>	
 		<style>
-			* {
+			* { 
 				margin: 0;
 				padding: 0;
 				box-sizing: border-box;
@@ -43,7 +65,7 @@
 			}
 		</style>
 	</head>
-	<body>
+	<body class="nis">
 		<div id="output"></div>
 		<script src="./main.js"></script>
 	</body>
