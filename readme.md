@@ -3,7 +3,7 @@
 Track the Ancient Zygomites on RS3 automatically via Alt1. Click Start, talk to NPCs, and the app marks what you’ve found. You can also toggle items manually.
 
 <p align="center">
-  <img src="example.png" alt="Example" width="320" />
+  <img src="example.png" alt="Example" width="250" />
   <br/>
   <em>Example UI</em>
   </p>
