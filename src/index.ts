@@ -166,6 +166,7 @@ const translations: Record<Language, Translations> = {
 		stateReset: "State reset - all zygomites marked as not captured",
 		alt1NotDetected: "Alt1 not detected, click",
 		alt1AddApp: "here",
+		addToAlt1Btn: "Alt1 not detected, click to add this app to Alt1",
 		toAddApp: "to add this app to Alt1",
 		monitoringActive: "Monitoring already active",
 		needsAlt1: "You need to run this in Alt1 to monitor dialogues",
@@ -202,6 +203,7 @@ const translations: Record<Language, Translations> = {
 		stateReset: "Estado resetado - todas as zygomitas marcadas como não capturadas",
 		alt1NotDetected: "Alt1 não detectado, clique",
 		alt1AddApp: "aqui",
+		addToAlt1Btn: "Alt1 não detectado, clique para adicionar este app ao Alt1",
 		toAddApp: "para adicionar este app ao Alt1",
 		monitoringActive: "Monitoramento já está ativo",
 		needsAlt1: "Você precisa executar isso no Alt1 para monitorar diálogos",
@@ -238,6 +240,7 @@ const translations: Record<Language, Translations> = {
 		stateReset: "Estado reiniciado - todas marcadas como no capturadas",
 		alt1NotDetected: "Alt1 no detectado, haz clic",
 		alt1AddApp: "aquí",
+		addToAlt1Btn: "Alt1 no detectado, haz clic para añadir esta app a Alt1",
 		toAddApp: "para añadir esta app a Alt1",
 		monitoringActive: "El monitoreo ya está activo",
 		needsAlt1: "Necesitas ejecutar esto en Alt1 para monitorear diálogos",
@@ -274,6 +277,7 @@ const translations: Record<Language, Translations> = {
 		stateReset: "Status zurückgesetzt - alle als nicht erfasst markiert",
 		alt1NotDetected: "Alt1 nicht erkannt, klicke",
 		alt1AddApp: "hier",
+		addToAlt1Btn: "Alt1 nicht erkannt, klicke um diese App zu Alt1 hinzuzufügen",
 		toAddApp: "um diese App zu Alt1 hinzuzufügen",
 		monitoringActive: "Überwachung bereits aktiv",
 		needsAlt1: "In Alt1 ausführen, um Dialoge zu überwachen",
@@ -970,8 +974,8 @@ if (window.alt1) {
 } else {
 	let addappurl = `alt1://addapp/${new URL("./appconfig.json", document.location.href).href}`;
 	output.insertAdjacentHTML("beforeend", `
-		<div class="p-4 bg-gray-800 rounded-lg my-4">
-			<p class="text-gray-200">Alt1 não detectado, clique <a href='${addappurl}' class="text-blue-400 hover:text-blue-300 underline">aqui</a> para adicionar este app ao Alt1</p>
+		<div class="p-4 bg-gray-800 rounded-lg my-4" style="text-align:center;">
+			<a href='${addappurl}' style="text-decoration:none;" class="menubutton nisbutton2" style="display:inline-block; width:auto;">${t('addToAlt1Btn')}</a>
 		</div>
 	`);
 }
