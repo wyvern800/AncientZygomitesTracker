@@ -1,4 +1,5 @@
 const path = require("path");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 /**
  * @type {import("webpack").Configuration}
@@ -40,5 +41,13 @@ module.exports = {
             { test: /\.data\.png$/, loader: "alt1/imagedata-loader", type: "javascript/auto" },
             { test: /\.fontmeta.json/, loader: "alt1/font-loader" }
         ]
-    }
+    },
+    plugins: [
+        // Copy NIS assets (css and images) to dist so index.html can reference ./nis/...
+        new CopyWebpackPlugin({
+            patterns: [
+                { from: "nis", to: "nis" }
+            ]
+        })
+    ]
 }
