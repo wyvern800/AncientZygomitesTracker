@@ -1,5 +1,5 @@
 {
-	"appName": "AnachroniaZygoTracker",
+	"appName": "AncientZygoTracker",
 	"description": "Tracks Ancient Zygomites caught in Anachronia.",
 	"appUrl": "./index.html",
 	"configUrl": "./appconfig.json",
