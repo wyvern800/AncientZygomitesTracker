@@ -609,17 +609,21 @@ function checkDialogue() {
 		console.log(`Buscando match para: "${normalizedTitle}"`);
 		
 		// Verifica se o título corresponde a alguma zygomita não capturada
+		// Regras de matching (evita colisão entre "Ed", "Edd" e "Eddy"):
+		// 1) Match exato (case-insensitive)
+		// 2) Match por palavra inteira no título (tokenização simples)
+		//    - Ex.: "talk to ed" → token "ed" casa somente com "Ed"
+		//    - Evita que "ed" case com "edd"/"eddy" e vice-versa
+		const titleTokens = normalizedTitle
+			.replace(/[^a-z\s]/g, " ")
+			.split(/\s+/)
+			.filter(Boolean);
+
 		for (const zygomite of zygomites) {
 			const normalizedZygomite = zygomite.name.toLowerCase().trim();
-			
-			// Tenta diferentes formas de matching:
-			// 1. Título contém o nome da zygomita
-			// 2. Título é exatamente igual ao nome
-			// 3. Nome contém o título (caso o OCR leia só parte)
-			const matches = 
-				normalizedTitle.includes(normalizedZygomite) ||
-				normalizedTitle === normalizedZygomite ||
-				normalizedZygomite.includes(normalizedTitle);
+			const isExact = normalizedTitle === normalizedZygomite;
+			const isWord = titleTokens.includes(normalizedZygomite);
+			const matches = isExact || isWord;
 			
 			if (!zygomite.catched && matches) {
 				zygomite.catched = true;
