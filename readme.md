@@ -9,7 +9,7 @@ Track the Ancient Zygomites on RS3 automatically via Alt1. Click Start, talk to 
   </p>
 
 ## How to use
-- [Click to install this app to your alt1](alt1://addapp/https://wyvern800.github.io/AncientZygomitesTracker/appconfig.json), or open the live app link: [View live app](https://wyvern800.github.io/AncientZygomitesTracker/),  or click “Add App”. Accept the needed permissions. Or just add the app manually
+- [Click to install this app to your alt1](https://alt1://addapp/https://wyvern800.github.io/AncientZygomitesTracker/appconfig.json/), or open the live app link: [View live app](https://wyvern800.github.io/AncientZygomitesTracker/),  or click “Add App”. Accept the needed permissions. Or just add the app manually
 <p align="center">
 <img src="example2.png" alt="Example" width="250" />
    <br/>
